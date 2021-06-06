@@ -10,7 +10,12 @@
 //! and then no more bytes can be written.
 class ByteStream {
   private:
-    // Your code here -- add private members as necessary.
+    int maxlen;          // TODO: could this be const?
+    std::string buffer;  // circular buffer
+    int sind;            // index of first byte in buffer
+    int eind;            // index of last byte in buffer
+    size_t cnt_read;
+    size_t cnt_write;
 
     // Hint: This doesn't need to be a sophisticated data structure at
     // all, but if any of your tests are taking longer than a second,
@@ -18,6 +23,7 @@ class ByteStream {
     // different approaches.
 
     bool _error{};  //!< Flag indicating that the stream suffered an error.
+    bool _input_active{};
 
   public:
     //! Construct a stream with room for `capacity` bytes.
