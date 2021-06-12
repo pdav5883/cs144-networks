@@ -5,21 +5,37 @@
 
 #include <cstdint>
 #include <string>
+#include <list>
+
+typedef unsigned char byte;
+typedef struct elem {
+    uint64_t firstindex;
+    size_t numbytes;
+    std::list<byte> bytesegment;
+} elem;
 
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,
 //! possibly overlapping) into an in-order byte stream.
 class StreamReassembler {
   private:
     // Your code here -- add private members as necessary.
-
     ByteStream _output;  //!< The reassembled in-order byte stream
-    size_t _capacity;    //!< The maximum number of bytes
+    size_t _capacity;    //!< The maximum number of bytes allowed in buffer and bytestream simultaneously
+    uint64_t nextindex;    //!< The next byte index we are looking for
+    std::list<elem> buffer;   //!< Contains the unassembled bytes
+    uint64_t lastindex;   //!< The index of final byte, which we learn when we get EOF signal
+    bool eofready;       //!< Whether we've seen eof marker
+
+    void merge_bytesegments(); //!< Any abutting segments in buffer get merged
+    void update_stream();  //!< If the buffer contains bytes that can be added to stream, do it
+    size_t total_width() const; //!< The number of bytes in the stream, plus width of buffer
 
   public:
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.
     //! \note This capacity limits both the bytes that have been reassembled,
     //! and those that have not yet been reassembled.
     StreamReassembler(const size_t capacity);
+    void printall();
 
     //! \brief Receive a substring and write any newly contiguous bytes into the stream.
     //!
