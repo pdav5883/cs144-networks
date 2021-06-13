@@ -13,12 +13,12 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 
 using namespace std;
 
-string list_to_string(const list<byte> &l) {
+string list_to_string(const list<cbyte> &l) {
     return string(l.begin(), l.end());
 }
 
-list<byte> string_to_list(const string &s) {
-    return list<byte>(s.begin(), s.end());
+list<cbyte> string_to_list(const string &s) {
+    return list<cbyte>(s.begin(), s.end());
 }
 
 
@@ -46,22 +46,21 @@ void StreamReassembler::merge_bytesegments() {
 
 
 void StreamReassembler::update_stream() {
-    // only do something if we have bytes ready to write to stream
-    if (empty() || buffer.front().firstindex != nextindex) {
-        return;
+    // only need to do something if we have bytes ready to write to stream
+    if (!empty() && buffer.front().firstindex == nextindex) {
+        // the first element of buffer is ready to add to the output stream,
+        // take it off the buffer, add string to stream, increment next ind
+        elem front = buffer.front();
+        buffer.pop_front();
+        _output.write(list_to_string(front.bytesegment));
+        nextindex += front.numbytes;
     }
-
-    // the first element of buffer is ready to add to the output stream,
-    // take it off the buffer, add string to stream, increment next ind
-    elem front = buffer.front();
-    buffer.pop_front();
-    _output.write(list_to_string(front.bytesegment));
-    nextindex += front.numbytes;
 
     // end the stream if we've written all bytes and have valid eof
-    if (eofready && nextindex > lastindex) {
+    if (eofready && nextindex >= eofindex) {
         _output.end_input();
     }
+
 }
 
 
@@ -80,7 +79,7 @@ StreamReassembler::StreamReassembler(const size_t capacity)
     _capacity(capacity),
     nextindex(0),
     buffer(list<elem>()),
-    lastindex(0),
+    eofindex(0),
     eofready(false) {}
 
 
@@ -92,7 +91,7 @@ void StreamReassembler::printall() {
     cout << "Buffer: " << endl;
     for (elem e : buffer) {
         cout << "  { " << e.firstindex << ", " << e.numbytes << ", ( ";
-        for (byte b : e.bytesegment) {
+        for (cbyte b : e.bytesegment) {
             cout << b << " ";
         }
         cout << ") }" << endl;
@@ -104,6 +103,17 @@ void StreamReassembler::printall() {
 //! possibly out-of-order, from the logical stream, and assembles any newly
 //! contiguous substrings and writes them into the output stream in order.
 void StreamReassembler::push_substring(const string &data, const uint64_t index, const bool eof) {
+    // deal with eof flag and/or no data
+    if (eof) {
+        eofready = true;
+        eofindex = index + data.length();
+    }
+
+    if (data.length() == 0) {
+        update_stream(); // need to do this here in case eof flag was passed with no data
+        return;
+    }
+
     list<elem>::iterator iter = buffer.begin();
     uint64_t prevseg_post = nextindex;
     uint64_t startsub = index;
@@ -143,12 +153,6 @@ void StreamReassembler::push_substring(const string &data, const uint64_t index,
         size_t n = endind - startind + 1;
         string s = data.substr(startind - index, n);
         buffer.insert(iter, {startind, n, string_to_list(s)});
-    }
-
-    // deal with eof flag
-    if (eof) {
-        eofready = true;
-        lastindex = index + data.length() - 1;
     }
 
     merge_bytesegments();

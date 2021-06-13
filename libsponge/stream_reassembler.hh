@@ -7,11 +7,11 @@
 #include <string>
 #include <list>
 
-typedef unsigned char byte;
+typedef unsigned char cbyte;
 typedef struct elem {
     uint64_t firstindex;
     size_t numbytes;
-    std::list<byte> bytesegment;
+    std::list<cbyte> bytesegment;
 } elem;
 
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,
@@ -22,7 +22,7 @@ class StreamReassembler {
     size_t _capacity;    //!< The maximum number of bytes allowed in buffer and bytestream simultaneously
     uint64_t nextindex;    //!< The next byte index we are looking for
     std::list<elem> buffer;   //!< Contains the unassembled bytes
-    uint64_t lastindex;   //!< The index of final byte, which we learn when we get EOF signal
+    uint64_t eofindex;   //!< The index of eof 'byte', which we learn when we get EOF signal
     bool eofready;       //!< Whether we've seen eof marker
 
     void merge_bytesegments(); //!< Any abutting segments in buffer get merged
