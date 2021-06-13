@@ -2,6 +2,7 @@
 #include <list>
 #include <string>
 #include "stream_reassembler.hh"
+#include "byte_stream.hh"
 
 using namespace std;
 
@@ -61,11 +62,15 @@ int main() {
     cout << s2 << endl;
     return 0;
     */
-    StreamReassembler sr(16);
+    StreamReassembler sr(8);
+    ByteStream &bs = sr.stream_out();
     sr.printall();
     sr.push_substring("23456",2,false);
     sr.printall();
-    sr.push_substring("12345678",1,false);
+    sr.push_substring("0123456789",0,false);
+    sr.printall();
+    cout << "Read: " << bs.read(4) << endl;
+    sr.push_substring("89",8,false);
     sr.printall();
 }
 

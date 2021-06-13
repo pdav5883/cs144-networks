@@ -23,7 +23,25 @@ list<byte> string_to_list(const string &s) {
 
 
 void StreamReassembler::merge_bytesegments() {
-    return;
+    if (empty()) {
+        return;
+    }
+
+    list<elem>::iterator left = buffer.begin();
+    list<elem>::iterator right = next(left);
+
+    while (right != buffer.end()) {
+        if (left->firstindex + left->numbytes == right->firstindex) {
+            // merge right segment into left segment, remove right elem, reset right elem
+            left->bytesegment.splice(left->bytesegment.end(), right->bytesegment);
+            left->numbytes += right->numbytes;
+            right = buffer.erase(right);
+        }
+        else {
+            left = next(left);
+            right = next(right);
+        }
+    }
 }
 
 
@@ -89,7 +107,9 @@ void StreamReassembler::push_substring(const string &data, const uint64_t index,
     list<elem>::iterator iter = buffer.begin();
     uint64_t prevseg_post = nextindex;
     uint64_t startsub = index;
-    uint64_t endsub = index + data.length() - 1;
+
+    // enforces the max capacity limit of the stream + buffer
+    uint64_t endsub = min(index + data.length() - 1, nextindex + _capacity - _output.buffer_size() - 1);
 
     uint64_t startgap, endgap, startind, endind;
 
