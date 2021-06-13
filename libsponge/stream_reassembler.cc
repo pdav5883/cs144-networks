@@ -105,7 +105,6 @@ void StreamReassembler::push_substring(const string &data, const uint64_t index,
             size_t n = endind - startind + 1;
             string s = data.substr(startind - index, n);
             buffer.insert(iter, {startind, n, string_to_list(s)});
-            iter++;
         }
 
         prevseg_post = iter->firstindex + iter->numbytes;

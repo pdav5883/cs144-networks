@@ -65,7 +65,7 @@ int main() {
     sr.printall();
     sr.push_substring("23456",2,false);
     sr.printall();
-    sr.push_substring("01",0,false);
+    sr.push_substring("12345678",1,false);
     sr.printall();
 }
 
