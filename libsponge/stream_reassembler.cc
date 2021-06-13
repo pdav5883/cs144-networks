@@ -59,7 +59,7 @@ void StreamReassembler::update_stream() {
     nextindex += front.numbytes;
 
     // end the stream if we've written all bytes and have valid eof
-    if (eofready || nextindex > lastindex) {
+    if (eofready && nextindex > lastindex) {
         _output.end_input();
     }
 }
@@ -143,6 +143,12 @@ void StreamReassembler::push_substring(const string &data, const uint64_t index,
         size_t n = endind - startind + 1;
         string s = data.substr(startind - index, n);
         buffer.insert(iter, {startind, n, string_to_list(s)});
+    }
+
+    // deal with eof flag
+    if (eof) {
+        eofready = true;
+        lastindex = index + data.length() - 1;
     }
 
     merge_bytesegments();

@@ -62,15 +62,29 @@ int main() {
     cout << s2 << endl;
     return 0;
     */
-    StreamReassembler sr(8);
+    StreamReassembler sr(9);
     ByteStream &bs = sr.stream_out();
     sr.printall();
-    sr.push_substring("23456",2,false);
+    sr.push_substring("234",2,false);
     sr.printall();
-    sr.push_substring("0123456789",0,false);
+    sr.push_substring("12345",1,false);
     sr.printall();
-    cout << "Read: " << bs.read(4) << endl;
-    sr.push_substring("89",8,false);
+    sr.push_substring("9abc",9,true);
     sr.printall();
+    cout << "status: " << bs.input_ended() << endl;
+    sr.push_substring("678",6,false);
+    sr.printall();
+    cout << "status: " << bs.input_ended() << endl;
+    sr.push_substring("0",0,false);
+    sr.printall();
+    cout << "status: " << bs.input_ended() << endl;
+    cout << "read: " << bs.read(6) << endl;
+    sr.push_substring("bc",11,false);
+    sr.printall();
+    cout << "status: " << bs.input_ended() << endl;
+    sr.push_substring("9a",9,false);
+    sr.printall();
+    cout << "status: " << bs.input_ended() << endl;
+    //cout << "status: " << bs.input_ended() << endl;
 }
 
