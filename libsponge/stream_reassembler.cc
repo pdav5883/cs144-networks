@@ -13,15 +13,6 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 
 using namespace std;
 
-string list_to_string(const list<cbyte> &l) {
-    return string(l.begin(), l.end());
-}
-
-list<cbyte> string_to_list(const string &s) {
-    return list<cbyte>(s.begin(), s.end());
-}
-
-
 void StreamReassembler::merge_bytesegments() {
     if (empty()) {
         return;
@@ -33,7 +24,7 @@ void StreamReassembler::merge_bytesegments() {
     while (right != buffer.end()) {
         if (left->firstindex + left->numbytes == right->firstindex) {
             // merge right segment into left segment, remove right elem, reset right elem
-            left->bytesegment.splice(left->bytesegment.end(), right->bytesegment);
+            left->bytesegment += right->bytesegment;
             left->numbytes += right->numbytes;
             right = buffer.erase(right);
         }
@@ -52,7 +43,7 @@ void StreamReassembler::update_stream() {
         // take it off the buffer, add string to stream, increment next ind
         elem front = buffer.front();
         buffer.pop_front();
-        _output.write(list_to_string(front.bytesegment));
+        _output.write(front.bytesegment);
         nextindex += front.numbytes;
     }
 
@@ -60,7 +51,6 @@ void StreamReassembler::update_stream() {
     if (eofready && nextindex >= eofindex) {
         _output.end_input();
     }
-
 }
 
 
@@ -90,11 +80,7 @@ void StreamReassembler::printall() {
     cout << "Next Ind: " << nextindex << endl;
     cout << "Buffer: " << endl;
     for (elem e : buffer) {
-        cout << "  { " << e.firstindex << ", " << e.numbytes << ", ( ";
-        for (cbyte b : e.bytesegment) {
-            cout << b << " ";
-        }
-        cout << ") }" << endl;
+        cout << "  { " << e.firstindex << ", " << e.numbytes << ", (" << e.bytesegment << ") }" << endl;
     }
 }
 
@@ -124,12 +110,12 @@ void StreamReassembler::push_substring(const string &data, const uint64_t index,
     uint64_t startgap, endgap, startind, endind;
 
     while (iter != buffer.end()) {
+        startgap = prevseg_post;
+        endgap = iter->firstindex - 1;
+
         if (startgap > endsub) {
             break;
         }
-
-        startgap = prevseg_post;
-        endgap = iter->firstindex - 1;
 
         startind = max(startgap, startsub);
         endind = min(endgap, endsub);
@@ -138,7 +124,7 @@ void StreamReassembler::push_substring(const string &data, const uint64_t index,
         if (startind <= endind) {
             size_t n = endind - startind + 1;
             string s = data.substr(startind - index, n);
-            buffer.insert(iter, {startind, n, string_to_list(s)});
+            buffer.insert(iter, {startind, n, s});
         }
 
         prevseg_post = iter->firstindex + iter->numbytes;
@@ -156,7 +142,7 @@ void StreamReassembler::push_substring(const string &data, const uint64_t index,
     if (startind <= endind) {
         size_t n = endind - startind + 1;
         string s = data.substr(startind - index, n);
-        buffer.insert(iter, {startind, n, string_to_list(s)});
+        buffer.insert(iter, {startind, n, s});
     }
 
     merge_bytesegments();

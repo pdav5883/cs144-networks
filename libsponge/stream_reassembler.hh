@@ -7,11 +7,10 @@
 #include <string>
 #include <list>
 
-typedef unsigned char cbyte;
 typedef struct elem {
     uint64_t firstindex;
     size_t numbytes;
-    std::list<cbyte> bytesegment;
+    std::string bytesegment;
 } elem;
 
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,

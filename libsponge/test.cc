@@ -62,7 +62,6 @@ int main() {
     cout << s2 << endl;
     return 0;
     */
-    /*
     StreamReassembler sr(9);
     ByteStream &bs = sr.stream_out();
     sr.printall();
@@ -86,12 +85,14 @@ int main() {
     sr.push_substring("9a",9,false);
     sr.printall();
     cout << "status: " << bs.input_ended() << endl;
-    */
+    
+    /*
     StreamReassembler sr(20);
     ByteStream &bs = sr.stream_out();
     cout << "status: " << bs.input_ended() << ", size: " << bs.buffer_size() << endl;
     sr.push_substring("",0,true);
     sr.printall();
     cout << "status: " << bs.input_ended() << ", size: " << bs.buffer_size() << endl;
+    */
 }
 
