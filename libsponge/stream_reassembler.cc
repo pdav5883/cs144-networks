@@ -124,6 +124,10 @@ void StreamReassembler::push_substring(const string &data, const uint64_t index,
     uint64_t startgap, endgap, startind, endind;
 
     while (iter != buffer.end()) {
+        if (startgap > endsub) {
+            break;
+        }
+
         startgap = prevseg_post;
         endgap = iter->firstindex - 1;
 
