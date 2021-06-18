@@ -22,7 +22,9 @@ int main() {
     */
     //cout << wrap(3 * (1ll << 32), WrappingInt32(0)) << endl; // 0
     //cout << wrap(3 * (1ll << 32) + 17, WrappingInt32(15)) << endl; // 32
+    cout << "max u32: " << 0xffffffff << ", half max u32: " << 0x7fffffff << endl;
     cout << unwrap(WrappingInt32(0xffffffff), WrappingInt32(0), 0) << ", " << 0xffffffff << endl; // 13
+    cout << unwrap(WrappingInt32(0), WrappingInt32(0), 0) << ", " << 0 << endl; // 13
     cout << unwrap(WrappingInt32(0xffffffff - 0xff843), WrappingInt32(0), 0) << ", " << 0xffffffff - 0xff843 << endl; // 13
 }
 

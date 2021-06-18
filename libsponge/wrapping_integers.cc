@@ -28,14 +28,8 @@ WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
 //! and the other stream runs from the remote TCPSender to the local TCPReceiver and
 //! has a different ISN.
 uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
-    WrappingInt32 cp = wrap(checkpoint, isn);
-    int32_t d = n - cp;
-    uint64_t res = checkpoint + d;
-    // need to catch the case where checkpoint is in below 2^32 and we've gone below zero with res
-    if (checkpoint < 0xffffffff && res > 0x1ffffffff) {
-        return res + 0xffffffff + 1; // extra +1 is necessary to account for the wrap around zero
-    }
-    else {
-        return res;
-    }
+    uint64_t half = 0x80000000;
+    checkpoint = max(checkpoint, half); // this max ensures no underflow around zero
+    
+    return checkpoint + (n - wrap(checkpoint, isn)); // (cp + n - cp - isn) for same interval
 }
