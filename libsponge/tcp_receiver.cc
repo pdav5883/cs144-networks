@@ -14,7 +14,7 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
     if (!_syn) {
         if (seg.header().syn) {
             _syn = true;
-            _isn = WrappingInt32(seg.header().seqno.raw_value());  // TODO: necessary to construct?
+            _isn = seg.header().seqno;
         } else {
             return;
         }
@@ -30,7 +30,7 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
 
     // push the bytes to reassembler, move nextind based on stream size
     size_t stream_size_before = stream_out().buffer_size();
-    _reassembler.push_substring(seg.payload().copy(), index, seg.header().fin);
+    _reassembler.push_substring(seg.payload().copy(), index, seg.header().fin); // has to be a better way than copy()
     _nextind += stream_out().buffer_size() - stream_size_before;
 }
 
