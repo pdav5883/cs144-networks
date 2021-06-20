@@ -13,9 +13,7 @@ using namespace std;
 //! Transform an "absolute" 64-bit sequence number (zero-indexed) into a WrappingInt32
 //! \param n The input absolute 64-bit sequence number
 //! \param isn The initial sequence number
-WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
-    return isn + n;
-}
+WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) { return isn + n; }
 
 //! Transform a WrappingInt32 into an "absolute" 64-bit sequence number (zero-indexed)
 //! \param n The relative sequence number
@@ -29,7 +27,7 @@ WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
 //! has a different ISN.
 uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
     uint64_t half = 0x80000000;
-    checkpoint = max(checkpoint, half); // this max ensures no underflow around zero
-    
-    return checkpoint + (n - wrap(checkpoint, isn)); // (cp + n - cp - isn) for same interval
+    checkpoint = max(checkpoint, half);  // this max ensures no underflow around zero
+
+    return checkpoint + (n - wrap(checkpoint, isn));  // (cp + n - cp - isn) for same interval
 }

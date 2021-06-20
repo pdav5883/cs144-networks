@@ -4,8 +4,8 @@
 #include "byte_stream.hh"
 
 #include <cstdint>
-#include <string>
 #include <list>
+#include <string>
 
 typedef struct elem {
     uint64_t firstindex;
@@ -17,16 +17,16 @@ typedef struct elem {
 //! possibly overlapping) into an in-order byte stream.
 class StreamReassembler {
   private:
-    ByteStream _output;  //!< The reassembled in-order byte stream
-    size_t _capacity;    //!< The maximum number of bytes allowed in buffer and bytestream simultaneously
-    uint64_t nextindex;    //!< The next byte index we are looking for
-    std::list<elem> buffer;   //!< Contains the unassembled bytes
-    uint64_t eofindex;   //!< The index of eof 'byte', which we learn when we get EOF signal
-    bool eofready;       //!< Whether we've seen eof marker
+    ByteStream _output;      //!< The reassembled in-order byte stream
+    size_t _capacity;        //!< The maximum number of bytes allowed in buffer and bytestream simultaneously
+    uint64_t nextindex;      //!< The next byte index we are looking for
+    std::list<elem> buffer;  //!< Contains the unassembled bytes
+    uint64_t eofindex;       //!< The index of eof 'byte', which we learn when we get EOF signal
+    bool eofready;           //!< Whether we've seen eof marker
 
-    void merge_bytesegments(); //!< Any abutting segments in buffer get merged
-    void update_stream();  //!< If the buffer contains bytes that can be added to stream, do it
-    size_t total_width() const; //!< The number of bytes in the stream, plus width of buffer
+    void merge_bytesegments();   //!< Any abutting segments in buffer get merged
+    void update_stream();        //!< If the buffer contains bytes that can be added to stream, do it
+    size_t total_width() const;  //!< The number of bytes in the stream, plus width of buffer
 
   public:
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.

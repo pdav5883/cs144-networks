@@ -11,9 +11,37 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 using namespace std;
 
 void TCPReceiver::segment_received(const TCPSegment &seg) {
-    DUMMY_CODE(seg);
+    if (!_syn) {
+        if (seg.header().syn) {
+            _syn = true;
+            _isn = WrappingInt32(seg.header().seqno.raw_value());  // TODO: necessary to construct?
+        } else {
+            return;
+        }
+    }
+
+    // construct the index of the payload, -1 goes from abs seqno to stream index
+    uint64_t index = unwrap(seg.header().seqno, _isn, _nextind) - 1;
+
+    // remember that syn takes up an seqno if it is sent
+    if (seg.header().syn) {
+        index++;
+    }
+
+    // push the bytes to reassembler, move nextind based on stream size
+    size_t stream_size_before = stream_out().buffer_size();
+    _reassembler.push_substring(seg.payload().copy(), index, seg.header().fin);
+    _nextind += stream_out().buffer_size() - stream_size_before;
 }
 
-optional<WrappingInt32> TCPReceiver::ackno() const { return {}; }
+optional<WrappingInt32> TCPReceiver::ackno() const {
+    if (!_syn) {
+        return {};
+    } else if (stream_out().input_ended()) {
+        return wrap(_nextind + 2, _isn);  // account for the fin bit
+    } else {
+        return wrap(_nextind + 1, _isn);
+    }
+}
 
-size_t TCPReceiver::window_size() const { return {}; }
+size_t TCPReceiver::window_size() const { return _capacity - stream_out().buffer_size(); }

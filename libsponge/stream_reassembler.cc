@@ -1,4 +1,5 @@
 #include "stream_reassembler.hh"
+
 #include <iostream>
 
 // Dummy implementation of a stream reassembler.
@@ -27,14 +28,12 @@ void StreamReassembler::merge_bytesegments() {
             left->bytesegment += right->bytesegment;
             left->numbytes += right->numbytes;
             right = buffer.erase(right);
-        }
-        else {
+        } else {
             left = next(left);
             right = next(right);
         }
     }
 }
-
 
 void StreamReassembler::update_stream() {
     // only need to do something if we have bytes ready to write to stream
@@ -53,25 +52,16 @@ void StreamReassembler::update_stream() {
     }
 }
 
-
 size_t StreamReassembler::total_width() const {
     if (empty()) {
         return _output.buffer_size();
-    }
-    else {
+    } else {
         return _output.buffer_size() + buffer.back().firstindex + buffer.back().numbytes - nextindex;
     }
 }
 
-
-StreamReassembler::StreamReassembler(const size_t capacity) 
-    : _output(capacity),
-    _capacity(capacity),
-    nextindex(0),
-    buffer(list<elem>()),
-    eofindex(0),
-    eofready(false) {}
-
+StreamReassembler::StreamReassembler(const size_t capacity)
+    : _output(capacity), _capacity(capacity), nextindex(0), buffer(list<elem>()), eofindex(0), eofready(false) {}
 
 void StreamReassembler::printall() {
     cout << "-----" << endl;
@@ -84,7 +74,6 @@ void StreamReassembler::printall() {
     }
 }
 
-
 //! \details This function accepts a substring (aka a segment) of bytes,
 //! possibly out-of-order, from the logical stream, and assembles any newly
 //! contiguous substrings and writes them into the output stream in order.
@@ -96,7 +85,7 @@ void StreamReassembler::push_substring(const string &data, const uint64_t index,
     }
 
     if (data.length() == 0) {
-        update_stream(); // need to do this here in case eof flag was passed with no data
+        update_stream();  // need to do this here in case eof flag was passed with no data
         return;
     }
 
@@ -149,8 +138,7 @@ void StreamReassembler::push_substring(const string &data, const uint64_t index,
     update_stream();
 }
 
-    
-size_t StreamReassembler::unassembled_bytes() const { 
+size_t StreamReassembler::unassembled_bytes() const {
     size_t n = 0;
     for (elem e : buffer) {
         n += e.numbytes;
@@ -158,8 +146,4 @@ size_t StreamReassembler::unassembled_bytes() const {
     return n;
 }
 
-
-bool StreamReassembler::empty() const {
-    return buffer.empty();
-}
-
+bool StreamReassembler::empty() const { return buffer.empty(); }
