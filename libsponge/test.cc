@@ -8,6 +8,7 @@
 #include <iostream>
 #include <list>
 #include <string>
+#include <sstream>
 
 using namespace std;
 
@@ -19,12 +20,33 @@ TCPSegment buildseg(string data, const WrappingInt32 seqno, bool syn, bool fin) 
     seg.payload() = Buffer(move(data));
     return seg;
 }
+/*
+string TCPHeader::to_string() const {
+    stringstream ss{};
+    ss << hex << boolalpha << "TCP source port: " << +sport << '\n'
+       << "TCP dest port: " << +dport << '\n'
+       << "TCP seqno: " << seqno << '\n'
+       << "TCP ackno: " << ackno << '\n'
+       << "TCP doff: " << +doff << '\n'
+       << "Flags: urg: " << urg << " ack: " << ack << " psh: " << psh << " rst: " << rst << " syn: " << syn
+       << " fin: " << fin << '\n'
+       << "TCP winsize: " << +win << '\n'
+       << "TCP cksum: " << +cksum << '\n'
+       << "TCP uptr: " << +uptr << '\n';
+    return ss.str();
+}
 
+
+size_t TCPSegment::length_in_sequence_space() const {
+    return payload().str().size() + (header().syn ? 1 : 0) + (header().fin ? 1 : 0);
+}
 
 int main() {
     const string s = "this is a string";
-    TCPSegment seg = buildseg(s, WrappingInt32(44), true, true);
-    int i = 10;
-    cout << seg.payload().str() << endl;
+    TCPSegment seg1 = buildseg("", WrappingInt32(44), false, false);
+    cout << "------------" << endl;
+    cout << "len: " << seg1.length_in_sequence_space() << endl << endl;
+    cout << "header: " << seg1.header().to_string() << endl;
+    cout << "payload: " << seg1.payload().str() << endl;
     return 0;
-}
+}*/
