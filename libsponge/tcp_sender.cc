@@ -20,12 +20,12 @@ void TCPSender::_send_segment(const TCPSegment seg) {
     _segments_out.push(seg);
     _segments_unack.push(seg);
     _bytes_unack += seg.length_in_sequence_space();
-    _timer = 0;
+    //_timer = 0;
 }
 
 void TCPSender::_resend_segment() {
     _segments_out.push(_segments_unack.front());
-    _timer = 0;
+    //_timer = 0;
 }
 
 void TCPSender::_update_unack() {
@@ -39,7 +39,7 @@ void TCPSender::_update_unack() {
                                  + seg.length_in_sequence_space() - 1;
 
         if (_prev_ackno > seg_end_seqno) {
-            _bytes_unack -= seg.length_in_sequence_space();
+            _bytes_unack -= seg.length_in_sequence_space(); // TODO: may need to update this in ack_received
             _segments_unack.pop();
         }
         else {
@@ -86,8 +86,17 @@ void TCPSender::fill_window() {
     // how much space in window, per instructions window is always at least one
     uint16_t one = 1; // TODO do something about this
     uint64_t window  = max(_receiver_window, one);
-    uint64_t unsent_window = window - bytes_in_flight();
-    uint64_t seg_bytes = 0;
+    
+    // TODO: unhack
+    int64_t a = window - bytes_in_flight();
+    uint64_t unsent_window;
+    if (a < 0) {
+        unsent_window = 0;
+    } else {
+        unsent_window = window - bytes_in_flight();
+    }
+
+    uint64_t seg_bytes;
     bool send_syn = false;
     bool send_fin = false;
 
@@ -95,6 +104,8 @@ void TCPSender::fill_window() {
     // haven't sent
 
     while (unsent_window > 0 && !_sent_fin && _has_content()) {
+        seg_bytes = 0;
+
         // see if segment will contain syn
         if (next_seqno_absolute() == 0) {
             send_syn = true;
@@ -128,13 +139,16 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
     // only do something if the ackno is higher than what we already have
     if (curr_ackno > _prev_ackno) {
         _prev_ackno = curr_ackno;
-        _receiver_window = window_size; // TODO: maybe need to adjust window if curr_ackno == _prev_ackno as well
-        
+        _receiver_window = window_size;
+
         _current_retransmission_timeout = _initial_retransmission_timeout;
         _retry_count = 0;
         _timer = 0;
 
         _update_unack();
+    }
+    else if (curr_ackno == _prev_ackno) {
+        _receiver_window = window_size; // maybe need max here
     }
     fill_window(); // fill the window even if we didn't ack anything new, in case there's new data avail on sender side
 }
@@ -147,6 +161,7 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
 
     if (_timer >= _current_retransmission_timeout) {
         _resend_segment();
+        _timer = 0;
     
         if (_receiver_window > 0) {
             _retry_count++;
