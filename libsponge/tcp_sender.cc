@@ -4,29 +4,16 @@
 
 #include <random>
 
-// Dummy implementation of a TCP sender
-
-// For Lab 3, please replace with a real implementation that passes the
-// automated checks run by `make check_lab3`.
-
-template <typename... Targs>
-void DUMMY_CODE(Targs &&... /* unused */) {}
-
 using namespace std;
-
 
 // Helper methods
 void TCPSender::_send_segment(const TCPSegment seg) {
     _segments_out.push(seg);
     _segments_unack.push(seg);
     _bytes_unack += seg.length_in_sequence_space();
-    //_timer = 0;
 }
 
-void TCPSender::_resend_segment() {
-    _segments_out.push(_segments_unack.front());
-    //_timer = 0;
-}
+void TCPSender::_resend_segment() { _segments_out.push(_segments_unack.front()); }
 
 void TCPSender::_update_unack() {
     TCPSegment seg;
@@ -35,30 +22,29 @@ void TCPSender::_update_unack() {
     // if ackno is past the end of the unacknowledged segment, pop it
     while (!_segments_unack.empty()) {
         seg = _segments_unack.front();
-        seg_end_seqno = unwrap(seg.header().seqno, _isn, _prev_ackno)
-                                 + seg.length_in_sequence_space() - 1;
+        seg_end_seqno = unwrap(seg.header().seqno, _isn, _prev_ackno) + seg.length_in_sequence_space() - 1;
 
         if (_prev_ackno > seg_end_seqno) {
-            _bytes_unack -= seg.length_in_sequence_space(); // TODO: may need to update this in ack_received
+            _bytes_unack -= seg.length_in_sequence_space();  // technically bytes could be acked in sub-segments
             _segments_unack.pop();
-        }
-        else {
+        } else {
             break;
         }
     }
 }
 
+// build a segment from parts
 const TCPSegment TCPSender::_buildseg(string data, const WrappingInt32 seqno, bool syn, bool fin) {
     TCPSegment seg;
     seg.header().syn = syn;
-    seg.header().fin= fin;
+    seg.header().fin = fin;
     seg.header().seqno = seqno;
     seg.payload() = Buffer(move(data));
     return seg;
 }
 
+// return whether there are any bytes to put in the segment: syn or fin or payload
 bool TCPSender::_has_content() {
-    // return whether there are any bytes to put in the segment: syn or fyn or payload
     return next_seqno_absolute() == 0 || stream_in().eof() || stream_in().buffer_size() > 0;
 }
 
@@ -71,40 +57,19 @@ TCPSender::TCPSender(const size_t capacity, const uint16_t retx_timeout, const s
     , _stream(capacity)
     , _current_retransmission_timeout{retx_timeout} {}
 
-uint64_t TCPSender::bytes_in_flight() const {
-    /*uint64_t bif = 0;
-
-    for (TCPSegment seg : _segments_unack) {
-        bif += seg.length_in_sequence_space();
-    }
-
-    return bif;*/
-    return _bytes_unack;
-}
+uint64_t TCPSender::bytes_in_flight() const { return _bytes_unack; }
 
 void TCPSender::fill_window() {
     // how much space in window, per instructions window is always at least one
-    uint16_t one = 1; // TODO do something about this
-    uint64_t window  = max(_receiver_window, one);
-    
-    // TODO: unhack
-    int64_t a = window - bytes_in_flight();
-    uint64_t unsent_window;
-    if (a < 0) {
-        unsent_window = 0;
-    } else {
-        unsent_window = window - bytes_in_flight();
-    }
+    uint16_t window = max<uint16_t>(_receiver_window, 1);
+    uint64_t unsent_window = max<int64_t>(0, window - bytes_in_flight());
 
-    uint64_t seg_bytes;
-    bool send_syn = false;
-    bool send_fin = false;
-
-    // haven't sent syn
-    // haven't sent
-
+    // keep sending segments if there is space, we have data to send, and haven't sent fin byte
+    // check for _sent_fin needs to go here, because we need to catch it right after we send fin
     while (unsent_window > 0 && !_sent_fin && _has_content()) {
-        seg_bytes = 0;
+        bool send_syn = false;   // whether sending syn byte this segment
+        bool send_fin = false;   // whether sending fin byte this segment
+        uint16_t seg_bytes = 0;  // how many bytes are in this segment
 
         // see if segment will contain syn
         if (next_seqno_absolute() == 0) {
@@ -115,7 +80,7 @@ void TCPSender::fill_window() {
 
         // payload bytes constrained by receiver window, max payload size, input buffer
         uint16_t payload_bytes = min(unsent_window, min(TCPConfig::MAX_PAYLOAD_SIZE, stream_in().buffer_size()));
-        string payload = stream_in().read(payload_bytes); 
+        string payload = stream_in().read(payload_bytes);
         unsent_window -= payload_bytes;
         seg_bytes += payload_bytes;
 
@@ -136,7 +101,7 @@ void TCPSender::fill_window() {
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
     uint64_t curr_ackno = unwrap(ackno, _isn, _prev_ackno);
 
-    // only do something if the ackno is higher than what we already have
+    // if ackno is higher than what we already have, update everything
     if (curr_ackno > _prev_ackno) {
         _prev_ackno = curr_ackno;
         _receiver_window = window_size;
@@ -147,14 +112,18 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
 
         _update_unack();
     }
+    // possible to update window without ackno (receiver reads off its stream)
     else if (curr_ackno == _prev_ackno) {
-        _receiver_window = window_size; // maybe need max here
+        _receiver_window = window_size;
     }
-    fill_window(); // fill the window even if we didn't ack anything new, in case there's new data avail on sender side
+
+    // fill the window even if we didn't ack anything new, in case there's new data avail on sender side
+    fill_window();
 }
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void TCPSender::tick(const size_t ms_since_last_tick) {
+    // timer running
     if (!_segments_unack.empty()) {
         _timer += ms_since_last_tick;
     }
@@ -162,7 +131,7 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
     if (_timer >= _current_retransmission_timeout) {
         _resend_segment();
         _timer = 0;
-    
+
         if (_receiver_window > 0) {
             _retry_count++;
             _current_retransmission_timeout *= 2;
@@ -172,6 +141,4 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
 
 unsigned int TCPSender::consecutive_retransmissions() const { return _retry_count; }
 
-void TCPSender::send_empty_segment() {
-    _segments_out.push(_buildseg("", next_seqno(), false, false));
-}
+void TCPSender::send_empty_segment() { _segments_out.push(_buildseg("", next_seqno(), false, false)); }

@@ -1,21 +1,21 @@
+#include "buffer.hh"
 #include "byte_stream.hh"
 #include "stream_reassembler.hh"
 #include "tcp_header.hh"
 #include "tcp_segment.hh"
-#include "buffer.hh"
 #include "wrapping_integers.hh"
 
 #include <iostream>
 #include <list>
-#include <string>
 #include <sstream>
+#include <string>
 
 using namespace std;
 
 TCPSegment buildseg(string data, const WrappingInt32 seqno, bool syn, bool fin) {
     TCPSegment seg;
     seg.header().syn = syn;
-    seg.header().fin= fin;
+    seg.header().fin = fin;
     seg.header().seqno = seqno;
     seg.payload() = Buffer(move(data));
     return seg;
