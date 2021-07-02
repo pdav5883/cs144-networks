@@ -101,6 +101,11 @@ void TCPSender::fill_window() {
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
     uint64_t curr_ackno = unwrap(ackno, _isn, _prev_ackno);
 
+    // if ackno is higher than next seqno, we know this ack is invalid
+    if (curr_ackno > _next_seqno) {
+        return;
+    }
+
     // if ackno is higher than what we already have, update everything
     if (curr_ackno > _prev_ackno) {
         _prev_ackno = curr_ackno;
