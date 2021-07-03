@@ -73,7 +73,7 @@ void TCPConnection::_check_shutdown() {
 
     // confident that peer got our ack of its fin
     if (req1 && req2 && req3) {
-        if (!_linger_after_streams_finish || _timer_received > 10 * _cfg.rt_timeout) {
+        if (!_linger_after_streams_finish || _timer_received >= 10 * _cfg.rt_timeout) {
             _active = false;
         }
     }
@@ -106,6 +106,12 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     }
 
     _receiver.segment_received(seg);
+
+    // attempt to connect if someone is trying to connect with us with a syn
+    if (!_connected && seg.header().syn) {
+        connect();
+        return;
+    }
 
     if (seg.header().ack) {
         _sender.ack_received(seg.header().ackno, seg.header().win);
@@ -147,6 +153,7 @@ void TCPConnection::end_input_stream() {
 }
 
 void TCPConnection::connect() {
+    _connected = true;
     _sender.fill_window();
     _send_outgoing();
 }

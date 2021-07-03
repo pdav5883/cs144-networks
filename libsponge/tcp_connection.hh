@@ -24,6 +24,7 @@ class TCPConnection {
     // Custom Attrs
     size_t _timer_received{0}; // the number of ms since last segment was received
     bool _active{true}; // whether the connection is active TODO: should this start false and then go to true on connect?
+    bool _connected{false}; // has connect been run?
 
     // Helper Methods
     bool _send_outgoing(); // send all of the segments on the sender outgoing queue, return whether anything sent
