@@ -99,10 +99,8 @@ void TCPSpongeSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
             cout << "REM CAP: " << _tcp->remaining_outbound_capacity() << "...";
             const auto data = _thread_data.read(_tcp->remaining_outbound_capacity());
             const auto len = data.size();
+            cout << "DATA LENGTH: " << len << "...";
             const auto amount_written = _tcp->write(move(data));
-
-            cout << "CONTAINS EOF: " << _thread_data.eof() << "...";
-            cout << "WRITE LENGTH: " << len << "...";
             cout << "AMOUNT WRITTEN: " << amount_written << endl;
 
             if (amount_written != len) {
