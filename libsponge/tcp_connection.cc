@@ -132,11 +132,11 @@ bool TCPConnection::active() const {
 }
 
 size_t TCPConnection::write(const string &data) {
-    cout << "XX: CALL WRITE:";
+    //cout << "XX: CALL WRITE:";
     size_t written_bytes = _sender.stream_in().write(data);
     _sender.fill_window();
     _send_outgoing();
-    cout << written_bytes << endl;
+    //cout << written_bytes << endl;
     return written_bytes;
 }
 

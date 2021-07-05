@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <iostream>
 
 //! A reference-counted handle to a file descriptor
 class FileDescriptor {

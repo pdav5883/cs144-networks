@@ -95,20 +95,21 @@ void TCPSpongeSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
         _thread_data,
         Direction::In,
         [&] {
-            cout << "XX: TCP_SPONGE_SOCKET DEBUG...";
-            cout << "REM CAP: " << _tcp->remaining_outbound_capacity() << "...";
+            //cout << "XX: TCP_SPONGE_SOCKET DEBUG...";
+            //cout << "REM CAP: " << _tcp->remaining_outbound_capacity() << "...";
+            cout << "Relevant Read...";
             const auto data = _thread_data.read(_tcp->remaining_outbound_capacity());
             const auto len = data.size();
-            cout << "DATA LENGTH: " << len << "...";
+            //cout << "DATA LENGTH: " << len << "...";
             const auto amount_written = _tcp->write(move(data));
-            cout << "AMOUNT WRITTEN: " << amount_written << endl;
+            //cout << "AMOUNT WRITTEN: " << amount_written << endl;
 
             if (amount_written != len) {
                 throw runtime_error("TCPConnection::write() accepted less than advertised length");
             }
 
             if (_thread_data.eof()) {
-                cout << "XX: TCP_SPONGE_SOCKET: EOF" << endl;
+                //cout << "XX: TCP_SPONGE_SOCKET: EOF" << endl;
                 _tcp->end_input_stream();
                 _outbound_shutdown = true;
 
@@ -128,7 +129,7 @@ void TCPSpongeSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
     _eventloop.add_rule(
         _thread_data,
         Direction::Out,
-        [&] {
+        [&] { 
             ByteStream &inbound = _tcp->inbound_stream();
             // Write from the inbound_stream into
             // the pipe, handling the possibility of a partial
