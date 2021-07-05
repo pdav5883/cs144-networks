@@ -95,10 +95,12 @@ void TCPSpongeSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
         _thread_data,
         Direction::In,
         [&] {
+            cout << "XX: TCP_SPONGE_SOCKET DEBUG...";
+            cout << "REM CAP: " << _tcp->remaining_outbound_capacity() << "...";
             const auto data = _thread_data.read(_tcp->remaining_outbound_capacity());
             const auto len = data.size();
             const auto amount_written = _tcp->write(move(data));
-            cout << "XX: TCP_SPONGE_SOCKET DEBUG...";
+
             cout << "CONTAINS EOF: " << _thread_data.eof() << "...";
             cout << "WRITE LENGTH: " << len << "...";
             cout << "AMOUNT WRITTEN: " << amount_written << endl;
