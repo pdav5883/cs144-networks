@@ -98,11 +98,17 @@ void TCPSpongeSocket<AdaptT>::_initialize_TCP(const TCPConfig &config) {
             const auto data = _thread_data.read(_tcp->remaining_outbound_capacity());
             const auto len = data.size();
             const auto amount_written = _tcp->write(move(data));
+            cout << "XX: TCP_SPONGE_SOCKET DEBUG...";
+            cout << "CONTAINS EOF: " << _thread_data.eof() << "...";
+            cout << "WRITE LENGTH: " << len << "...";
+            cout << "AMOUNT WRITTEN: " << amount_written << endl;
+
             if (amount_written != len) {
                 throw runtime_error("TCPConnection::write() accepted less than advertised length");
             }
 
             if (_thread_data.eof()) {
+                cout << "XX: TCP_SPONGE_SOCKET: EOF" << endl;
                 _tcp->end_input_stream();
                 _outbound_shutdown = true;
 

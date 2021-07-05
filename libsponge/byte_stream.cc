@@ -94,4 +94,12 @@ size_t ByteStream::bytes_written() const { return cnt_write; }
 
 size_t ByteStream::bytes_read() const { return cnt_read; }
 
-size_t ByteStream::remaining_capacity() const { return maxlen - buffer_size(); }
+size_t ByteStream::remaining_capacity() const {
+    if (input_ended()) {
+        return 0;
+    }
+    else {
+        return maxlen - buffer_size();
+    }
+}
+

@@ -16,6 +16,7 @@ using namespace std;
 bool TCPConnection::_send_outgoing(bool force_send) {
     if (_sender.segments_out().empty()) {
         if (force_send) {
+            //cout << "XX: FORCE SEND" << endl;
             _sender.send_empty_segment();
             //_sender.fill_window();
         }
@@ -23,6 +24,8 @@ bool TCPConnection::_send_outgoing(bool force_send) {
             return false;
         }
     }
+
+    //cout << "XX: SENDING STUFF....." << endl;
 
     // create segments and push them to connection queue
     while (!_sender.segments_out().empty()) {
@@ -34,6 +37,7 @@ bool TCPConnection::_send_outgoing(bool force_send) {
             seg.header().win = min<uint16_t>(_receiver.window_size(), numeric_limits<uint16_t>::max());
         }
         _segments_out.push(seg);
+        //cout << "XX: SEND: " << seg.length_in_sequence_space() << endl;
         _sender.segments_out().pop();
     }
     return true;
@@ -104,7 +108,9 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         _active = false;
         return;
     }
-
+    
+    //cout << "XX: RECEIVED STUFF:" << seg.length_in_sequence_space() << endl;
+    
     _receiver.segment_received(seg);
 
     // attempt to connect if someone is trying to connect with us with a syn
@@ -126,9 +132,11 @@ bool TCPConnection::active() const {
 }
 
 size_t TCPConnection::write(const string &data) {
+    cout << "XX: CALL WRITE:";
     size_t written_bytes = _sender.stream_in().write(data);
     _sender.fill_window();
     _send_outgoing();
+    cout << written_bytes << endl;
     return written_bytes;
 }
 
@@ -147,6 +155,8 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
 }
 
 void TCPConnection::end_input_stream() {
+    cout << "XX: CALL END" << endl;
+    cout << "XX: BUFFER SIZE: " << _sender.stream_in().buffer_size() << endl;
     _sender.stream_in().end_input();
     _sender.fill_window();
     _send_outgoing();
