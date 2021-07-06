@@ -155,8 +155,8 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
 }
 
 void TCPConnection::end_input_stream() {
-    cout << "XX: CALL END" << endl;
-    cout << "XX: BUFFER SIZE: " << _sender.stream_in().buffer_size() << endl;
+    //cout << "XX: CALL END" << endl;
+    //cout << "XX: BUFFER SIZE: " << _sender.stream_in().buffer_size() << endl;
     _sender.stream_in().end_input();
     _sender.fill_window();
     _send_outgoing();
