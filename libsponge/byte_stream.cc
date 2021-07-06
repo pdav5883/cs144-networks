@@ -24,7 +24,6 @@ ByteStream::ByteStream(const size_t capacity)
 
 size_t ByteStream::write(const string &data) {
     size_t writenum = min(data.length(), remaining_capacity());
-    //cout << "data length: " << data.length() << "...rem cap: " << remaining_capacity() << "...writenum: " << writenum << endl;
 
     // empty data case
     if (writenum == 0) {
@@ -73,7 +72,6 @@ void ByteStream::pop_output(const size_t len) {
 //! \param[in] len bytes will be popped and returned
 //! \returns a string
 std::string ByteStream::read(const size_t len) {
-    //cout << "======READ======" << endl;
     string out = peek_output(len);
     pop_output(len);
     return out;

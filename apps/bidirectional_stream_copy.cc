@@ -30,10 +30,7 @@ void bidirectional_stream_copy(Socket &socket) {
         _input,
         Direction::In,
         [&] {
-            //cout << "BSC R1 outbound before: " << _outbound.buffer_size() << endl;
-            // THE SOURCE OF ALL PAIN
             _outbound.write(_input.read(_outbound.remaining_capacity()));
-            //cout << "BSC R1 outbound after: " << _outbound.buffer_size() << endl;
             if (_input.eof()) {
                 _outbound.end_input();
             }

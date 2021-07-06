@@ -23,12 +23,12 @@ class TCPConnection {
 
     // Custom Attrs
     size_t _timer_received{0}; // the number of ms since last segment was received
-    bool _active{true}; // whether the connection is active TODO: should this start false and then go to true on connect?
+    bool _active{true}; // whether the connection is active
     bool _connected{false}; // has connect been run?
 
     // Helper Methods
-    bool _send_outgoing(); // send all of the segments on the sender outgoing queue, return whether anything sent
-    bool _send_outgoing(bool force_send);
+    void _send_outgoing(); // send all of the segments on the sender outgoing queue, return whether anything sent
+    void _send_outgoing(bool force_send);
     void _send_rst(); // send segment with rst and kill the connection
     void _check_shutdown(); // check the criteria for terminating connection. called in tick (for linger case) and seg receive
 
