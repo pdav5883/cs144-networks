@@ -21,6 +21,17 @@ class TCPConnection {
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
 
+    // Custom Attrs
+    size_t _timer_received{0}; // the number of ms since last segment was received
+    bool _active{true}; // whether the connection is active
+    bool _connected{false}; // has connect been run?
+
+    // Helper Methods
+    void _send_outgoing(); // send all of the segments on the sender outgoing queue, return whether anything sent
+    void _send_outgoing(bool force_send);
+    void _send_rst(); // send segment with rst and kill the connection
+    void _check_shutdown(); // check the criteria for terminating connection. called in tick (for linger case) and seg receive
+
   public:
     //! \name "Input" interface for the writer
     //!@{
