@@ -25,6 +25,11 @@ ByteStream::ByteStream(const size_t capacity)
 size_t ByteStream::write(const string &data) {
     size_t writenum = min(data.length(), remaining_capacity());
 
+    // empty data case
+    if (writenum == 0) {
+        return 0;
+    }
+
     // buffer empty case
     if (buffer_empty()) {
         sind = 0;
@@ -95,3 +100,4 @@ size_t ByteStream::bytes_written() const { return cnt_write; }
 size_t ByteStream::bytes_read() const { return cnt_read; }
 
 size_t ByteStream::remaining_capacity() const { return maxlen - buffer_size(); }
+
