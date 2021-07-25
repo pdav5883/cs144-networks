@@ -22,8 +22,7 @@ using namespace std;
 //! \param[in] ip_address IP (what ARP calls "protocol") address of the interface
 NetworkInterface::NetworkInterface(const EthernetAddress &ethernet_address, const Address &ip_address)
     : _ethernet_address(ethernet_address), _ip_address(ip_address) {
-    cerr << "DEBUG: Network interface has Ethernet address " << to_string(_ethernet_address) << " and IP address "
-         << ip_address.ip() << "\n";
+    // cerr << "DEBUG: Network interface has Ethernet address " << to_string(_ethernet_address) << " and IP address " << ip_address.ip() << "\n";
 }
 
 //! \param[in] dgram the IPv4 datagram to be sent
@@ -33,14 +32,33 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     // convert IP address of next hop to raw 32-bit representation (used in ARP header)
     const uint32_t next_hop_ip = next_hop.ipv4_numeric();
 
-    DUMMY_CODE(dgram, next_hop, next_hop_ip);
+    // construct ethernet frame
+    // if next_hop_ip is in cache with has_reply, put on _frames_out
+    // else create arp request and send, create cache entry, put ethernet frame on _frames_waiting
 }
 
 //! \param[in] frame the incoming Ethernet frame
 optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &frame) {
-    DUMMY_CODE(frame);
+    // check type of frame
+    // if ipv4, exctract and return
+    // if arp request, update cache, respond to request if it's us
+    // if arp reply, update cache
     return {};
 }
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
-void NetworkInterface::tick(const size_t ms_since_last_tick) { DUMMY_CODE(ms_since_last_tick); }
+void NetworkInterface::tick(const size_t ms_since_last_tick) {
+    // iterate through all entries in _arp_cache and increment by tick
+    // if we are above limit corresponding to has_reply (two diff limits) remove from the cache
+}
+
+// iterate through all waiting frames to see if we can send them now
+void _flush_frames_waiting() {}
+
+// update the cache by changing valid, resetting timer, or adding to cache
+void _update_cache(uint32_t ipaddr, EthernetAddress ethaddr) {
+    // flush waiting frames if we changed something to valid or added new entry
+}
+
+
+

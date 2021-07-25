@@ -7,6 +7,11 @@
 
 #include <optional>
 #include <queue>
+#include <map>
+#include <list>
+
+#define ARP_EXPIRATION_MS 30000
+#define ARP_RETRY_MS 5000
 
 //! \brief A "network interface" that connects IP (the internet layer, or network layer)
 //! with Ethernet (the network access layer, or link layer).
@@ -29,6 +34,15 @@
 //! the network interface passes it up the stack. If it's an ARP
 //! request or reply, the network interface processes the frame
 //! and learns or replies as necessary.
+
+// structure that is the value in the key/value arp cache
+typedef struct cache_value {
+    bool has_reply;
+    size_t timer;
+    EthernetAddress addr; // TODO: may need to move apr_message.hh include into this file from network_interface.cc
+} cache_value;
+
+
 class NetworkInterface {
   private:
     //! Ethernet (known as hardware, network-access-layer, or link-layer) address of the interface
@@ -39,6 +53,14 @@ class NetworkInterface {
 
     //! outbound queue of Ethernet frames that the NetworkInterface wants sent
     std::queue<EthernetFrame> _frames_out{};
+
+    // custom attributes
+    std::map<uint32_t,cache_value> _arp_cache{};
+    std::list<EthernetFrame> _frames_waiting{};
+
+    // custom methods
+    void _flush_frames_waiting();
+    void _update_cache(uint32_t ipaddr, EthernetAddress ethaddr);
 
   public:
     //! \brief Construct a network interface with given Ethernet (network-access-layer) and IP (internet-layer) addresses
