@@ -6,6 +6,7 @@
 #include "tun.hh"
 
 #include <optional>
+#include <array>
 #include <queue>
 #include <map>
 #include <list>
@@ -39,7 +40,7 @@
 typedef struct cache_value {
     bool has_reply;
     size_t timer;
-    EthernetAddress addr; // TODO: may need to move apr_message.hh include into this file from network_interface.cc
+    EthernetAddress addr;
 } cache_value;
 
 
@@ -56,11 +57,12 @@ class NetworkInterface {
 
     // custom attributes
     std::map<uint32_t,cache_value> _arp_cache{};
-    std::list<EthernetFrame> _frames_waiting{};
+    std::list<EthernetFrame> _frames_waiting{}; // TODO: this needs to also store the ip destination
 
     // custom methods
     void _flush_frames_waiting();
     void _update_cache(uint32_t ipaddr, EthernetAddress ethaddr);
+    const EthernetFrame _build_arpframe(uint32_t ipaddr);
 
   public:
     //! \brief Construct a network interface with given Ethernet (network-access-layer) and IP (internet-layer) addresses
