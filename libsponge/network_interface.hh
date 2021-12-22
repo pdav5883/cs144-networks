@@ -43,6 +43,11 @@ typedef struct cache_value {
     EthernetAddress addr;
 } cache_value;
 
+typedef struct wait_item {
+    const InternetDatagram& dgram;
+    const uint32_t next_hop_ip;
+} wait_item;
+
 
 class NetworkInterface {
   private:
@@ -57,12 +62,14 @@ class NetworkInterface {
 
     // custom attributes
     std::map<uint32_t,cache_value> _arp_cache{};
-    std::list<EthernetFrame> _frames_waiting{}; // TODO: this needs to also store the ip destination
+    std::list<wait_item>__waiting{};
 
     // custom methods
-    void _flush_frames_waiting();
-    void _update_cache(uint32_t ipaddr, EthernetAddress ethaddr);
-    const EthernetFrame _build_arpframe(uint32_t ipaddr);
+    void _flush_waiting();
+    void _update_cache(const uint32_t ipaddr, const EthernetAddress &ethernet_address);
+    const EthernetFrame _build_arprequest_frame(const uint32_t ipaddr);
+    const EthernetFrame _build_arpreply_frame(const uint32_t ipaddr);
+    
 
   public:
     //! \brief Construct a network interface with given Ethernet (network-access-layer) and IP (internet-layer) addresses

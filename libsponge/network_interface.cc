@@ -37,21 +37,21 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     bool send_arp = true;
 
     if (it != _arp_cache.end()) {
-        // send frame, no arp if has_reply
+        // address is in cache with reply -- send ethernet
         if (it->second.has_reply) {
             send_arp = false;
 
             EthernetFrame dataframe;
             dataframe.header().src = _ethernet_address;
             dataframe.header().dst = it->second.addr;
-            dataframe.header().type = TYPE_IPv4;
+            dataframe.header().type = EthernetHeader::TYPE_IPv4;
             dataframe.payload() = Buffer(dgram.serialize());
 
             _frames_out.push(dataframe);
 
             cout << "DEBUG: Found and has reply" << endl;
         }
-        // no arp if retry timer hasn't expired
+        // address is in cache, timer not expired -- keep waiting
         else if (it->second.timer < ARP_RETRY_MS) {
             send_arp = false;
             cout << "DEBUG: Found, no reply, no retry" << endl;
@@ -61,26 +61,53 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     // either retry timer has expired or we don't have the address in cache
     if (send_arp) {
         // create/reset cache entry
-        _arp_cache[next_hop_ip] = {false, 0, NULL};
+        cache_value val = {false, 0, NULL}; // TODO may not need
+        _arp_cache[next_hop_ip] = val;
 
         // send arp request
-        _frames_out.push(_build_arpframe(next_hop_ip));
+        _frames_out.push(_build_arprequest_frame(next_hop_ip));
         
         // put datagram on waiting
-        // TODO
+        wait_item item = {dgram, next_hop_ip}; // TODO may not need
+        _waiting.push_back(item);
     }
-
-
-    // else create arp request and send, create cache entry, put ethernet frame on _frames_waiting
 }
 
 //! \param[in] frame the incoming Ethernet frame
 optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &frame) {
-    // check type of frame
-    // if ipv4, exctract and return
-    // if arp request, update cache, respond to request if it's us
-    // if arp reply, update cache
-    return {};
+    // frame must have relevant destination
+    EthernetAddress dst = frame.header().dst
+    if (dst != _ethernet_address && dst != ETHERNET_BROADCAST) {
+        return {};
+    }
+
+    // if ipv4, extract and return
+    if (frame.header().type == EthernetHeader::TYPE_IPv4) {
+        IPv4Datagram dgram;
+        if (dgram.parse(frame.payload()) != ParseResult::NoError) {
+            return {};
+        }
+        
+        return dgram;
+    }
+
+    // if arp message, depends on request/reply
+    else if (frame.header().type == EthernetHeader::TYPE_ARP) {
+        ARPMessage msg;
+        if (msg.parse(frame.payload()) != ParseResult::NoError) {
+            return {};
+        }
+
+        // always record sender mapping in cache
+        _update_cache(msg.sender_ip_address, msg.sender_ethernet_address);
+
+        // send reply if msg is request and we are target
+        if (msg.opcode == ARPMessage::OPCODE_REQUEST && msg.target_ip_address == _ip_address.ipv4_numeric()) {
+            _frames_out.push(_build_arpreply_frame(msg.sender_ip_address, msg.sender_ethernet_address));
+        }
+
+        return {};
+    }
 }
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
@@ -90,16 +117,17 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
 }
 
 // iterate through all waiting frames to see if we can send them now
-void _flush_frames_waiting() {}
+void _flush_waiting() {}
 
 // update the cache by changing valid, resetting timer, or adding to cache
-void _update_cache(uint32_t ipaddr, EthernetAddress ethaddr) {
+void _update_cache(const uint32_t ipaddr, const EthernetAddress &ethernet_address) {
     // flush waiting frames if we changed something to valid or added new entry
 }
 
-const EthernetFrame _build_arpframe(uint32_t ipaddr) {
+const EthernetFrame _build_arprequest_frame(const uint32_t ipaddr) {
+    // ip addr that we are looking for matching eth addr
     ARPMessage msg;
-    msg.opcode = OPCODE_REQUEST;
+    msg.opcode = ARPMessage::OPCODE_REQUEST;
     msg.sender_ethernet_address = _ethernet_address;
     msg.sender_ip_address = _ip_address.ipv4_numeric();
     msg.target_ip_address = ipaddr;
@@ -107,7 +135,25 @@ const EthernetFrame _build_arpframe(uint32_t ipaddr) {
     EthernetFrame frame;
     frame.header().src = _ethernet_address;
     frame.header().dst = ETHERNET_BROADCAST;
-    frame.header().type = TYPE_ARP;
+    frame.header().type = EthernetHeader::TYPE_ARP;
+    frame.payload() = Buffer(msg.serialize());
+
+    return frame;
+}
+
+const EthernetFrame _build_arpreply_frame(const uint32_t ipaddr, const EthernetAddress &ethernet_address) {
+    // ip/ether addr of the node we are replying to
+    ARPMessage msg;
+    msg.opcode = ARPMessage::OPCODE_REPLY;
+    msg.sender_ethernet_address = _ethernet_address;
+    msg.sender_ip_address = _ip_address.ipv4_numeric();
+    msg.target_ethernet_address = ethernet_address;
+    msg.target_ip_address = ipaddr;
+
+    EthernetFrame frame;
+    frame.header().src = _ethernet_address;
+    frame.header().dst = ethernet_address;
+    frame.header().type = EthernetHeader::TYPE_ARP;
     frame.payload() = Buffer(msg.serialize());
 
     return frame;
