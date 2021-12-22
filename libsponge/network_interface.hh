@@ -44,7 +44,7 @@ typedef struct cache_value {
 } cache_value;
 
 typedef struct wait_item {
-    const InternetDatagram& dgram;
+    const InternetDatagram dgram;
     const uint32_t next_hop_ip;
 } wait_item;
 
@@ -68,7 +68,7 @@ class NetworkInterface {
     void _send_waiting(const uint32_t ipaddr);
     void _update_cache(const uint32_t ipaddr, const EthernetAddress &ethernet_address);
     const EthernetFrame _build_arprequest_frame(const uint32_t ipaddr);
-    const EthernetFrame _build_arpreply_frame(const uint32_t ipaddr);
+    const EthernetFrame _build_arpreply_frame(const uint32_t ipaddr, const EthernetAddress &ethernet_address);
     
 
   public:

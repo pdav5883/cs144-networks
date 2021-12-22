@@ -1,4 +1,4 @@
-include "network_interface.hh"
+#include "network_interface.hh"
 
 #include "arp_message.hh"
 #include "ethernet_frame.hh"
@@ -42,16 +42,14 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
             dataframe.header().src = _ethernet_address;
             dataframe.header().dst = it->second.addr;
             dataframe.header().type = EthernetHeader::TYPE_IPv4;
-            dataframe.payload() = Buffer(dgram.serialize());
+            dataframe.payload() = dgram.serialize().concatenate();
 
             _frames_out.push(dataframe);
 
-            cout << "DEBUG: Found and has reply" << endl;
         }
         // address is in cache, timer not expired -- keep waiting
         else if (it->second.timer < ARP_RETRY_MS) {
             send_arp = false;
-            cout << "DEBUG: Found, no reply, no retry" << endl;
         }
     }
 
@@ -73,7 +71,7 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
 //! \param[in] frame the incoming Ethernet frame
 optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &frame) {
     // frame must have relevant destination
-    EthernetAddress dst = frame.header().dst
+    EthernetAddress dst = frame.header().dst;
     if (dst != _ethernet_address && dst != ETHERNET_BROADCAST) {
         return {};
     }
@@ -107,9 +105,8 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
         if (msg.opcode == ARPMessage::OPCODE_REQUEST && msg.target_ip_address == _ip_address.ipv4_numeric()) {
             _frames_out.push(_build_arpreply_frame(msg.sender_ip_address, msg.sender_ethernet_address));
         }
-
-        return {};
     }
+    return {};
 }
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
@@ -118,10 +115,10 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
     map<uint32_t, cache_value>::iterator it = _arp_cache.begin();
 
     while (it != _arp_cache.end()) {
-        it->timer += ms_since_last_tick;
+        it->second.timer += ms_since_last_tick;
 
-        if (it->timer >= ARP_EXPIRATION_MS) {
-            it = arp_cache.erase(it);
+        if (it->second.timer >= ARP_EXPIRATION_MS) {
+            it = _arp_cache.erase(it);
         }
         else {
             it++;
@@ -129,9 +126,9 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
     }
 }
 
-void _send_waiting(const uint32_t ipaddr) {
+void NetworkInterface::_send_waiting(const uint32_t ipaddr) {
     list<wait_item>::iterator it = _waiting.begin();
-    const EthernetAddress ethaddr = _arp_cache[ipaddr]->addr;
+    const EthernetAddress ethaddr = _arp_cache[ipaddr].addr;
     
     // check items in waiting against ipaddr just added
     while (it != _waiting.end()) {
@@ -140,7 +137,7 @@ void _send_waiting(const uint32_t ipaddr) {
             dataframe.header().src = _ethernet_address;
             dataframe.header().dst = ethaddr;
             dataframe.header().type = EthernetHeader::TYPE_IPv4;
-            dataframe.payload() = Buffer(it->dgram.serialize());
+            dataframe.payload() = it->dgram.serialize().concatenate();
             
             _frames_out.push(dataframe);
 
@@ -152,20 +149,20 @@ void _send_waiting(const uint32_t ipaddr) {
     }
 }
 
-void _update_cache(const uint32_t ipaddr, const EthernetAddress &ethernet_address) {
+void NetworkInterface::_update_cache(const uint32_t ipaddr, const EthernetAddress &ethernet_address) {
     map<uint32_t, cache_value>::iterator it = _arp_cache.find(ipaddr);
     cache_value val = {true, 0, ethernet_address};
     
     // new entry, check waiting
     if (it == _arp_cache.end()) {
         _arp_cache[ipaddr] = val;
-        _send_waiting(ipaddr, ethernet_address);
+        _send_waiting(ipaddr);
     }
     else {
         // make valid, check waiting
-        if (!it->has_reply) {
+        if (!it->second.has_reply) {
             _arp_cache[ipaddr] = val;
-            _send_waiting(ipaddr, ethernet_address);
+            _send_waiting(ipaddr);
         }
         // reset timer, don't check waiting
         else {
@@ -174,7 +171,7 @@ void _update_cache(const uint32_t ipaddr, const EthernetAddress &ethernet_addres
     }
 }
 
-const EthernetFrame _build_arprequest_frame(const uint32_t ipaddr) {
+const EthernetFrame NetworkInterface::_build_arprequest_frame(const uint32_t ipaddr) {
     // ip addr that we are looking for matching eth addr
     ARPMessage msg;
     msg.opcode = ARPMessage::OPCODE_REQUEST;
@@ -186,12 +183,12 @@ const EthernetFrame _build_arprequest_frame(const uint32_t ipaddr) {
     frame.header().src = _ethernet_address;
     frame.header().dst = ETHERNET_BROADCAST;
     frame.header().type = EthernetHeader::TYPE_ARP;
-    frame.payload() = Buffer(msg.serialize());
+    frame.payload() = msg.serialize();
 
     return frame;
 }
 
-const EthernetFrame _build_arpreply_frame(const uint32_t ipaddr, const EthernetAddress &ethernet_address) {
+const EthernetFrame NetworkInterface::_build_arpreply_frame(const uint32_t ipaddr, const EthernetAddress &ethernet_address) {
     // ip/ether addr of the node we are replying to
     ARPMessage msg;
     msg.opcode = ARPMessage::OPCODE_REPLY;
@@ -204,10 +201,8 @@ const EthernetFrame _build_arpreply_frame(const uint32_t ipaddr, const EthernetA
     frame.header().src = _ethernet_address;
     frame.header().dst = ethernet_address;
     frame.header().type = EthernetHeader::TYPE_ARP;
-    frame.payload() = Buffer(msg.serialize());
+    frame.payload() = msg.serialize();
 
     return frame;
 }
-
-
 
