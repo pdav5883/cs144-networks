@@ -13,9 +13,6 @@ include "network_interface.hh"
 
 // You will need to add private members to the class declaration in `network_interface.hh`
 
-template <typename... Targs>
-void DUMMY_CODE(Targs &&... /* unused */) {}
-
 using namespace std;
 
 //! \param[in] ethernet_address Ethernet (what ARP calls "hardware") address of the interface
@@ -61,7 +58,7 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     // either retry timer has expired or we don't have the address in cache
     if (send_arp) {
         // create/reset cache entry
-        cache_value val = {false, 0, NULL}; // TODO may not need
+        cache_value val = {false, 0, 0}; // TODO may not need
         _arp_cache[next_hop_ip] = val;
 
         // send arp request
@@ -101,7 +98,12 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
         // always record sender mapping in cache
         _update_cache(msg.sender_ip_address, msg.sender_ethernet_address);
 
-        // send reply if msg is request and we are target
+        // if reply, go through waiting datagrams
+        if (msg.opcode == ARPMessage::OPCODE_REPLY) {
+            _send_waiting(msg.sender_ip_address);
+        }
+
+        // if request and we are target send reply
         if (msg.opcode == ARPMessage::OPCODE_REQUEST && msg.target_ip_address == _ip_address.ipv4_numeric()) {
             _frames_out.push(_build_arpreply_frame(msg.sender_ip_address, msg.sender_ethernet_address));
         }
@@ -112,16 +114,64 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void NetworkInterface::tick(const size_t ms_since_last_tick) {
-    // iterate through all entries in _arp_cache and increment by tick
-    // if we are above limit corresponding to has_reply (two diff limits) remove from the cache
+    // iterate through all entries in _arp_cache and increment timer, remove if timer expired
+    map<uint32_t, cache_value>::iterator it = _arp_cache.begin();
+
+    while (it != _arp_cache.end()) {
+        it->timer += ms_since_last_tick;
+
+        if (it->timer >= ARP_EXPIRATION_MS) {
+            it = arp_cache.erase(it);
+        }
+        else {
+            it++;
+        }
+    }
 }
 
-// iterate through all waiting frames to see if we can send them now
-void _flush_waiting() {}
+void _send_waiting(const uint32_t ipaddr) {
+    list<wait_item>::iterator it = _waiting.begin();
+    const EthernetAddress ethaddr = _arp_cache[ipaddr]->addr;
+    
+    // check items in waiting against ipaddr just added
+    while (it != _waiting.end()) {
+        if (it->next_hop_ip == ipaddr) {
+            EthernetFrame dataframe;
+            dataframe.header().src = _ethernet_address;
+            dataframe.header().dst = ethaddr;
+            dataframe.header().type = EthernetHeader::TYPE_IPv4;
+            dataframe.payload() = Buffer(it->dgram.serialize());
+            
+            _frames_out.push(dataframe);
 
-// update the cache by changing valid, resetting timer, or adding to cache
+            it = _waiting.erase(it);
+        }
+        else {
+            it++;
+        }
+    }
+}
+
 void _update_cache(const uint32_t ipaddr, const EthernetAddress &ethernet_address) {
-    // flush waiting frames if we changed something to valid or added new entry
+    map<uint32_t, cache_value>::iterator it = _arp_cache.find(ipaddr);
+    cache_value val = {true, 0, ethernet_address};
+    
+    // new entry, check waiting
+    if (it == _arp_cache.end()) {
+        _arp_cache[ipaddr] = val;
+        _send_waiting(ipaddr, ethernet_address);
+    }
+    else {
+        // make valid, check waiting
+        if (!it->has_reply) {
+            _arp_cache[ipaddr] = val;
+            _send_waiting(ipaddr, ethernet_address);
+        }
+        // reset timer, don't check waiting
+        else {
+            _arp_cache[ipaddr] = val;
+        }
+    }
 }
 
 const EthernetFrame _build_arprequest_frame(const uint32_t ipaddr) {

@@ -62,10 +62,10 @@ class NetworkInterface {
 
     // custom attributes
     std::map<uint32_t,cache_value> _arp_cache{};
-    std::list<wait_item>__waiting{};
+    std::list<wait_item>_waiting{};
 
     // custom methods
-    void _flush_waiting();
+    void _send_waiting(const uint32_t ipaddr);
     void _update_cache(const uint32_t ipaddr, const EthernetAddress &ethernet_address);
     const EthernetFrame _build_arprequest_frame(const uint32_t ipaddr);
     const EthernetFrame _build_arpreply_frame(const uint32_t ipaddr);
