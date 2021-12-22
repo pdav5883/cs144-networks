@@ -56,14 +56,14 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     // either retry timer has expired or we don't have the address in cache
     if (send_arp) {
         // create/reset cache entry
-        cache_value val = {false, 0, 0}; // TODO may not need
+        cache_value val = {false, 0, 0};
         _arp_cache[next_hop_ip] = val;
 
         // send arp request
         _frames_out.push(_build_arprequest_frame(next_hop_ip));
         
         // put datagram on waiting
-        wait_item item = {dgram, next_hop_ip}; // TODO may not need
+        wait_item item = {dgram, next_hop_ip};
         _waiting.push_back(item);
     }
 }
