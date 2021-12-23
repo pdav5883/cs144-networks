@@ -1,5 +1,10 @@
+# Three lines below ignore all files w/out extenion
+*
+!*.*
+!*/
 *.a
 *.o
+*.out
 /build
 CMakeCache.txt
 CMakeFiles
