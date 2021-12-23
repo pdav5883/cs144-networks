@@ -12,7 +12,7 @@
 typedef struct table_item {
     const uint32_t route_prefix;
     const uint8_t prefix_length;
-    const optional<Address> next_hop;
+    const std::optional<Address> next_hop;
     const size_t interface_num;
 } table_item;
 

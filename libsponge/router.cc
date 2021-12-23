@@ -46,7 +46,7 @@ void Router::route_one_datagram(InternetDatagram &dgram) {
     // look through table and find longest prefix match
     while (it != _table.end()) {
         uint8_t shiftnum = ADDRESS_BITS - it->prefix_length;
-        bool match = (it->route_prefix >> shiftnum) == (myaddr_numeric >> shiftnum) || shiftnum == ADDRESS_BITS;
+        bool match = (it->route_prefix >> shiftnum) == (dgram_dst >> shiftnum) || shiftnum == ADDRESS_BITS;
         if (match && it->prefix_length >= longest_length) {
             longest_match = it;
             longest_length = it->prefix_length;
@@ -60,17 +60,15 @@ void Router::route_one_datagram(InternetDatagram &dgram) {
     }
     // send onward if we found match
     else {
-        Address route_dst;
-
+        dgram.header().ttl--;
+        
         if (longest_match->next_hop.has_value()) {
-            route_dst = next_hop;
+            interface(longest_match->interface_num).send_datagram(dgram, longest_match->next_hop.value());
         }
         else {
-            route_dst = Address::from_ipv4_numeric(dgram_dst);
+            interface(longest_match->interface_num).send_datagram(dgram, Address::from_ipv4_numeric(dgram_dst));
         }
-
-        dgram.header().ttl--;
-        interface(longest_match->interface_num).send_datagram(dgram, route_dst);
+    }
 }
 
 void Router::route() {
