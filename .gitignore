@@ -1,5 +1,11 @@
+# Three lines below ignore all files w/out extenion
+*
+!*.*
+!*/
 *.a
 *.o
+*.out
+*.swp
 /build
 CMakeCache.txt
 CMakeFiles
@@ -7,3 +13,7 @@ Makefile
 cmake_install.cmake
 CTestTestfile.cmake
 compile_commands.json
+*Doxy*
+/doctests
+/tests
+/Testing
